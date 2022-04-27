@@ -1,6 +1,7 @@
 package com.example.mandelbrot;
 
 import javafx.application.Application;
+import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.image.*;
@@ -10,6 +11,9 @@ import javafx.stage.Stage;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import java.util.ArrayList;
+import javafx.scene.layout.VBox;
+
+
 
 public class MandelbrotZoom extends Application {
 
@@ -39,44 +43,55 @@ public class MandelbrotZoom extends Application {
         stage.setScene(scene);
 
 
-        //slider to control zoom level; button to refresh view
+        //buttons to refresh view, zoom in, zoom out
         // text fields to control centerX and centerY
-        Slider zoomSlider = new Slider(0, 99.9999, 0);
-        Button reloadButton = new Button("reload image");
+
+        Button zoomIn = new Button("+");
+        Button zoomOut = new Button("-");
+        HBox zoomButtons = new HBox();
+        zoomButtons.getChildren().addAll(zoomOut, zoomIn);
+
+        Button refineButton = new Button("refine image");
         Button resetButton = new Button("reset image");
-        TextField xControl = new TextField();
-        TextField yControl = new TextField();
         TextField maxIterControl = new TextField();
+
+        Button up = new Button("^");
+        Button down = new Button("v");
+        Button left = new Button("<");
+        Button right = new Button(">");
+
+        BorderPane directions = new BorderPane();
+
+
+        BorderPane.setAlignment(up, Pos.TOP_CENTER);
+        BorderPane.setAlignment(down, Pos.BASELINE_CENTER);
+        directions.setTop(up);
+        directions.setBottom(down);
+
+        directions.setLeft(left);
+        directions.setRight(right);
 
         // vertical box to hold all the items
         VBox box = new VBox();
+        //horizontal box to hold the direction buttons
         HBox buttons = new HBox();
 
-        xControl.setPromptText("Center X on (double)");
-        yControl.setPromptText("Center Y on (double)");
         maxIterControl.setPromptText("Set max iter (int)");
 
-        buttons.getChildren().addAll(reloadButton, resetButton);
-        box.getChildren().addAll(buttons, xControl, yControl, maxIterControl, zoomSlider);
+        buttons.getChildren().addAll(refineButton, resetButton);
+        box.getChildren().addAll(buttons, directions, maxIterControl, zoomButtons);
 
         //How zoomed in the set should be and the cartesian point that should be centered in the image
-
         ImageView iv = new ImageView(createSet(width, height, centerX, centerY, zoomPercent));
-        root.getChildren().add(iv);
 
+        root.getChildren().add(iv);
         root.getChildren().addAll(createIntervalLines());
         root.getChildren().add(box);
 
-        reloadButton.setOnAction(e -> {
+        refineButton.setOnAction(e -> {
             max_iter = maxIterControl.getText().isBlank() ? max_iter : Integer.parseInt(maxIterControl.getText());
-            centerX = xControl.getText().isBlank() ? centerX : Double.parseDouble(xControl.getText());
-            centerY = yControl.getText().isBlank() ? centerY : Double.parseDouble(yControl.getText());
-            zoomPercent = 100.0 - zoomSlider.getValue();
             ImageView view = new ImageView(createSet(width, height, centerX, centerY, zoomPercent));
-            root.getChildren().clear();
-            root.getChildren().add(view);
-            root.getChildren().addAll(createIntervalLines());
-            root.getChildren().add(box);
+            root.getChildren().set(0, view);
         });
 
         resetButton.setOnAction(e -> {
@@ -85,11 +100,47 @@ public class MandelbrotZoom extends Application {
             centerY = 0;
             zoomPercent = 100;
             ImageView view = new ImageView(createSet(width, height, centerX, centerY, zoomPercent));
-            root.getChildren().clear();
-            root.getChildren().add(view);
-            root.getChildren().addAll(createIntervalLines());
-            root.getChildren().add(box);
+            root.getChildren().set(0, view);
         });
+
+
+        up.setOnAction(e ->{
+            centerY += (100.0 / zoomPercent) * 0.1;
+            ImageView view = new ImageView(createSet(width, height, centerX, centerY, zoomPercent));
+            root.getChildren().set(0, view);
+        });
+
+        down.setOnAction(e ->{
+            centerY -= (100.0 / zoomPercent) * 0.1;
+            ImageView view = new ImageView(createSet(width, height, centerX, centerY, zoomPercent));
+            root.getChildren().set(0, view);
+        });
+
+        left.setOnAction(e ->{
+            centerX -= (100.0 / zoomPercent) * 0.1;
+            ImageView view = new ImageView(createSet(width, height, centerX, centerY, zoomPercent));
+            root.getChildren().set(0, view);
+        });
+
+        right.setOnAction(e ->{
+            centerX += (100.0 / zoomPercent) * 0.1;
+            ImageView view = new ImageView(createSet(width, height, centerX, centerY, zoomPercent));
+            root.getChildren().set(0, view);
+        });
+
+        zoomIn.setOnAction(e -> {
+            zoomPercent += zoomPercent/100 * 10;
+            ImageView view = new ImageView(createSet(width, height, centerX, centerY, zoomPercent));
+            root.getChildren().set(0, view);
+        });
+
+        zoomOut.setOnAction(e -> {
+            zoomPercent -= zoomPercent/100 * 10;
+            ImageView view = new ImageView(createSet(width, height, centerX, centerY, zoomPercent));
+            root.getChildren().set(0, view);
+        });
+
+
         stage.show();
     }
 
@@ -112,11 +163,11 @@ public class MandelbrotZoom extends Application {
 
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                writer.setColor(i, j, xyColor(cr + centerX , ci + centerY));
-                ci -= 4.0 / width * zoomPercent / 100;
+                writer.setColor(i, j, xyColor(cr + centerX + ((zoomPercent-100)/zoomPercent * 2), ci + centerY - ((zoomPercent-100)/zoomPercent * 2)));
+                ci -= 4.0 / width * 100 / zoomPercent ;
             }
 
-            cr += 4.0 / width * zoomPercent / 100;
+            cr += 4.0 / width * 100 / zoomPercent ;
             ci = 2;
         }
         return set;
@@ -124,9 +175,9 @@ public class MandelbrotZoom extends Application {
 
     private Color xyColor(double cr, double ci) {
         int i = iterate(cr, ci);
-        double h = i==max_iter? 0: ((1 - (double)i/max_iter))*360;
+        double h = i==max_iter? 0: (1 - ((double)i/max_iter))*360;
         double s = i < max_iter ? (double)i / max_iter: 0;
-        double b = i < max_iter ?  1 : 0;
+        double b = i < max_iter ? 1 : 0;
         return Color.hsb(h, s, b);
     }
 
