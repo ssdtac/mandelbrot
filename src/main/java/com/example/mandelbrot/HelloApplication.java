@@ -7,11 +7,13 @@ import javafx.scene.paint.Color;
 import javafx.stage.*;
 
 public class HelloApplication extends Application {
-    // increase this for more clarity in the image
-    private final int max_iter = 120;
 
-    //global counter to help with coloring (maybe, idk yet)
-    private int counter = 0;
+    // increase this for more clarity in the image
+    // be aware that the higher this is, the more you need to zoom in to see detail.
+    // the nature of the coloring algorithm used means that lower numbers are
+    // generally more pretty when zoomed out, and you need more iterations
+    // to zoom in further.
+    private final int max_iter = 40;
 
     // real c, imaginary c
     private double cr, ci;
@@ -20,9 +22,9 @@ public class HelloApplication extends Application {
     public void start(Stage stage) {
         stage.setTitle("Mandelbrot Zoom");
         Group root = new Group();
-        Scene scene = new Scene(root, 800, 800, Color.rgb(255, 0, 0));
+        Scene scene = new Scene(root, 1000, 1000, Color.rgb(0, 0, 0));
         stage.setScene(scene);
-        ImageView iv = new ImageView(createSet(800, 800));
+        ImageView iv = new ImageView(createSet(1000, 1000));
         root.getChildren().add(iv);
         //TODO: add zoom functionality (method or class?) + add colors
 
@@ -48,8 +50,10 @@ public class HelloApplication extends Application {
 
     private Color xyColor(double cr, double ci) {
         int i = iterate(cr, ci);
-        i = i < max_iter ? i % 255: 255;
-        return Color.rgb(i, i, i);
+        double h = i==max_iter? 0: ((double)i/max_iter)*360;
+        double s = i <= max_iter ? (double)i / max_iter: 1;
+        double b = i < max_iter ? 1: 0;
+        return Color.hsb(h, s, b);
     }
 
     private int iterate(double realC, double imagC) {
